@@ -1,4 +1,4 @@
-#Requires -Version 0.0.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     Collects device name, internet-connected adapters and ESET ProductInstanceID
