@@ -1,37 +1,36 @@
 #Requires -Version 5.1
 
-# How it works:
-# 
-#       -Wait blocks until the installer exits, so the second install never starts early.
-#       -PassThru returns the process object, so you can read ExitCode and stop if the first install failed. There’s no point installing the second app if it depends on the first one.
-#
-#   - Exit codes: 0 means success, 3010 means success but a reboot is needed, and 1641 means the installer started a reboot itself. Anything else is an error.
-# 
-# Silent switches depend on the installer type:
-# 
-#------------------------------------------------------------------------------------------
-# Type	                |            Typical silent arguments
-# ----------------------+------------------------------------------------------------------
-# .msi	                |    msiexec.exe /i "file.msi" /qn /norestart
-# .exe, InstallShield	|    /s or /S /v"/qn"
-# .exe, Inno Setup	    |    /VERYSILENT /NORESTART
-# .exe, NSIS	        |    /S (capital S)
-#------------------------------------------------------------------------------------------
-
-
-# Example:
-#    @{ Name = 'First app';  File = 'msiexec.exe'; Args = '/i "D:\work\ESET\first.msi" /qn /norestart' }
-#    @{ Name = 'Second app'; File = 'D:\work\ESET\second.exe'; Args = '/silent' }
-
 $installers = @(
-    @{ Name = 'First app';  File = 'msiexec.exe'; Args = '/i "D:\work\ESET\first.msi" /qn /norestart' }
-    @{ Name = 'Second app'; File = 'D:\work\ESET\second.exe'; Args = '/silent' }
+    @{ Name = 'First app'; File = 'D:\Install\VeraCrypt.Portable.1.26.29.exe' }
+    @{ Name = 'Second app'; File = 'D:\Install\VeraCrypt.Portable.1.26.29.exe' }
 )
 
 foreach ($app in $installers) {
     Write-Host "Installing $($app.Name)..." -ForegroundColor Cyan
 
-    $process = Start-Process -FilePath $app.File -ArgumentList $app.Args -Wait -PassThru
+    if (-not (Test-Path -LiteralPath $app.File) -and $app.File -ne 'msiexec.exe') {
+        Write-Host "$($app.Name): file not found: $($app.File). Stopping." -ForegroundColor Red
+        break
+    }
+
+    # Pass -ArgumentList only when Args has text; an empty value makes Start-Process fail.
+    $params = @{
+        FilePath = $app.File
+        Wait     = $true
+        PassThru = $true
+    }
+    if (-not [string]::IsNullOrWhiteSpace($app.Args)) {
+        $params.ArgumentList = $app.Args
+    }
+
+    try {
+        $process = Start-Process @params -ErrorAction Stop
+    }
+    catch {
+        Write-Host "$($app.Name) could not be started: $($_.Exception.Message) Stopping." -ForegroundColor Red
+        break
+    }
+
     $code = $process.ExitCode
 
     if ($code -eq 0) {
@@ -39,6 +38,10 @@ foreach ($app in $installers) {
     }
     elseif ($code -eq 3010 -or $code -eq 1641) {
         Write-Host "$($app.Name) installed, reboot required." -ForegroundColor Yellow
+    }
+    elseif ($code -eq 1602) {
+        Write-Host "$($app.Name) was cancelled. Stopping." -ForegroundColor Yellow
+        break
     }
     else {
         Write-Host "$($app.Name) failed with exit code $code. Stopping." -ForegroundColor Red
