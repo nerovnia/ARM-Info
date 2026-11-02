@@ -17,6 +17,18 @@ if (-not (Test-Path -LiteralPath $ListFile)) {
     exit 1
 }
 
+# Drive the script is running from, e.g. "E:".
+$scriptDrive = Split-Path -Path $PSScriptRoot -Qualifier
+Write-Host "Script is running from drive $scriptDrive" -ForegroundColor Gray
+
+# Puts the script's drive in front of a path from the list.
+# "\Scratch\x.exe", "Scratch\x.exe" and "D:\Scratch\x.exe" all become "<ScriptDrive>\Scratch\x.exe".
+function Resolve-InstallerPath([string]$Path) {
+    if ($Path -eq 'msiexec.exe') { return $Path }
+    $relative = ($Path -replace '^[A-Za-z]:', '').TrimStart('\', '/')
+    return "$scriptDrive\$relative"
+}
+
 $installers = foreach ($line in Get-Content -LiteralPath $ListFile -Encoding UTF8) {
     $line = $line.Trim()
     if ($line -eq '' -or $line.StartsWith('#')) { continue }
@@ -27,14 +39,14 @@ $installers = foreach ($line in Get-Content -LiteralPath $ListFile -Encoding UTF
         # Only a path: use the file name (without extension) as the display name.
         @{
             Name = [System.IO.Path]::GetFileNameWithoutExtension($parts[0])
-            File = $parts[0]
+            File = Resolve-InstallerPath $parts[0]
             Args = ''
         }
     }
     else {
         @{
             Name = $parts[0]
-            File = $parts[1]
+            File = Resolve-InstallerPath $parts[1]
             Args = if ($parts.Count -ge 3) { $parts[2] } else { '' }
         }
     }
