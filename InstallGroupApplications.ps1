@@ -1,9 +1,51 @@
 #Requires -Version 5.1
 
-$installers = @(
-    @{ Name = 'First app'; File = 'D:\Install\VeraCrypt.Portable.1.26.29.exe' }
-    @{ Name = 'Second app'; File = 'D:\Install\VeraCrypt.Portable.1.26.29.exe' }
+param(
+    # Text file with the list of installers. Default: installers.txt next to this script.
+    [string]$ListFile = (Join-Path $PSScriptRoot 'installers.txt')
 )
+
+# List file format (save it as UTF-8 so Cyrillic paths are read correctly):
+#   - One installer per line.
+#   - Either just a path:          D:\Scratch\peazip-11.4.0.WIN64.exe
+#   - Or Name | Path | Arguments:  Chrome | D:\Scratch\Chrome\ChromeSetup.exe | /silent /install
+#     (Arguments are optional.)
+#   - Empty lines and lines starting with # are ignored.
+
+if (-not (Test-Path -LiteralPath $ListFile)) {
+    Write-Host "List file not found: $ListFile" -ForegroundColor Red
+    exit 1
+}
+
+$installers = foreach ($line in Get-Content -LiteralPath $ListFile -Encoding UTF8) {
+    $line = $line.Trim()
+    if ($line -eq '' -or $line.StartsWith('#')) { continue }
+
+    $parts = $line -split '\|', 3 | ForEach-Object { $_.Trim().Trim('"') }
+
+    if ($parts.Count -eq 1) {
+        # Only a path: use the file name (without extension) as the display name.
+        @{
+            Name = [System.IO.Path]::GetFileNameWithoutExtension($parts[0])
+            File = $parts[0]
+            Args = ''
+        }
+    }
+    else {
+        @{
+            Name = $parts[0]
+            File = $parts[1]
+            Args = if ($parts.Count -ge 3) { $parts[2] } else { '' }
+        }
+    }
+}
+
+if (-not $installers) {
+    Write-Host "No installers found in $ListFile" -ForegroundColor Yellow
+    exit 0
+}
+
+Write-Host "Loaded $(@($installers).Count) installer(s) from $ListFile" -ForegroundColor Gray
 
 foreach ($app in $installers) {
     Write-Host "Installing $($app.Name)..." -ForegroundColor Cyan
