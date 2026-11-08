@@ -25,16 +25,18 @@ rem  Avoid "!" in names/descriptions (delayed expansion eats it).
 rem ================================================================
 set /a N=0
 call :AddItem "preinstallWindows.ps1" "Pre-install Windows" "Prepares a fresh Windows installation"
-call :AddItem "installApps.ps1"       "Install applications" "Installs the standard set of programs"
-call :AddItem "cleanup.ps1"           "Cleanup"              "Removes temporary files and caches"
+call :AddItem "InstallGroupApplications.ps1"       "Install applications" "Installs the standard set of programs"
+call :AddItem "Get-DeviceInventory.ps1"           "Get info about workstation"              "Get MAC Address, Computer Name, ESET License ID"
+call :AddItem "GetFlashStickInfo.ps1"           "Get info about USB Flash"              "Get info about USB Flash-Sticks"
 rem Example with parameters passed to the script:
 rem call :AddItem "backup.ps1" "Backup" "Copies user folders to D:\Backup" "-Target 'D:\Backup' -Verbose"
 
 :menu
 cls
-echo !C_LINE!==================================================!C_RESET!
-echo !C_TITLE!             PowerShell Script Launcher!C_RESET!
-echo !C_LINE!==================================================!C_RESET!
+echo !C_LINE!===============================================================!C_RESET!
+echo !C_TITLE!           Enterprise Application Package Installer !C_RESET!
+echo !C_TITLE!                             (2026)!C_RESET!
+echo !C_LINE!===============================================================!C_RESET!
 echo.
 for /L %%i in (1,1,!N!) do (
     echo   !C_NUM![%%i]!C_RESET! !C_NAME!!NAME[%%i]!!C_RESET!
