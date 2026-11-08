@@ -5,6 +5,18 @@ rem (save this .bat as UTF-8 without BOM if you use Cyrillic in it).
 chcp 65001 >nul
 title PowerShell Script Launcher
 
+rem ---- ANSI colors (Windows 10/11) ----
+for /F %%a in ('echo prompt $E ^| cmd') do set "ESC=%%a"
+set "C_RESET=%ESC%[0m"
+set "C_TITLE=%ESC%[96m"
+set "C_LINE=%ESC%[36m"
+set "C_NUM=%ESC%[93m"
+set "C_NAME=%ESC%[97m"
+set "C_DESC=%ESC%[90m"
+set "C_OK=%ESC%[92m"
+set "C_ERR=%ESC%[91m"
+set "C_PROMPT=%ESC%[92m"
+
 rem ================================================================
 rem  MENU ENTRIES
 rem  call :AddItem "file.ps1" "Menu name" "Description" "optional args"
@@ -20,26 +32,26 @@ rem call :AddItem "backup.ps1" "Backup" "Copies user folders to D:\Backup" "-Tar
 
 :menu
 cls
-echo ==================================================
-echo              PowerShell Script Launcher
-echo ==================================================
+echo !C_LINE!==================================================!C_RESET!
+echo !C_TITLE!             PowerShell Script Launcher!C_RESET!
+echo !C_LINE!==================================================!C_RESET!
 echo.
 for /L %%i in (1,1,!N!) do (
-    echo   [%%i] !NAME[%%i]!
-    echo        !DESC[%%i]!
-    if not exist "%~dp0!FILE[%%i]!" echo        ^(file not found: !FILE[%%i]!^)
+    echo   !C_NUM![%%i]!C_RESET! !C_NAME!!NAME[%%i]!!C_RESET!
+    echo        !C_DESC!!DESC[%%i]!!C_RESET!
+    if not exist "%~dp0!FILE[%%i]!" echo        !C_ERR!^(file not found: !FILE[%%i]!^)!C_RESET!
     echo.
 )
-echo   [0] Exit
+echo   !C_ERR![0] Exit!C_RESET!
 echo.
 set "CHOICE="
-set /p "CHOICE=Select an option: "
+set /p "CHOICE=!C_PROMPT!Select an option: !C_RESET!"
 
 if not defined CHOICE goto menu
 if "!CHOICE!"=="0" goto end
 if not defined FILE[!CHOICE!] (
     echo.
-    echo Invalid choice: !CHOICE!
+    echo !C_ERR!Invalid choice: !CHOICE!!C_RESET!
     pause
     goto menu
 )
@@ -49,7 +61,7 @@ set "SARGS=!ARGS[%CHOICE%]!"
 
 if not exist "!SCRIPT!" (
     echo.
-    echo File not found: !SCRIPT!
+    echo !C_ERR!File not found: !SCRIPT!!C_RESET!
     pause
     goto menu
 )
@@ -58,10 +70,10 @@ rem Escape single quotes for the PowerShell string (e.g. paths like "Об'єкт
 set "PSPATH=!SCRIPT:'=''!"
 
 cls
-echo Running: !NAME[%CHOICE%]!
-echo File:    !SCRIPT!
-if defined SARGS echo Args:    !SARGS!
-echo --------------------------------------------------
+echo !C_TITLE!Running:!C_RESET! !C_NAME!!NAME[%CHOICE%]!!C_RESET!
+echo !C_DESC!File:    !SCRIPT!!C_RESET!
+if defined SARGS echo !C_DESC!Args:    !SARGS!!C_RESET!
+echo !C_LINE!--------------------------------------------------!C_RESET!
 echo.
 
 rem Reads the script explicitly as UTF-8, so Ukrainian text works
@@ -70,8 +82,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Cr
 set "RC=!ERRORLEVEL!"
 
 echo.
-echo --------------------------------------------------
-echo Finished with exit code !RC!
+echo !C_LINE!--------------------------------------------------!C_RESET!
+if "!RC!"=="0" (
+    echo !C_OK!Finished successfully ^(exit code 0^)!C_RESET!
+) else (
+    echo !C_ERR!Finished with exit code !RC!!C_RESET!
+)
 pause
 goto menu
 
